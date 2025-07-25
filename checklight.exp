@@ -1,0 +1,46 @@
+#!/usr/bin/expect
+# Usage: ./checklight.exp <host> <port>
+
+# Set timeout for connection attempts
+set timeout 10
+
+# Get arguments from command line
+set host [lindex $argv 0]
+set port [lindex $argv 1]
+set username YOURUSERNAME
+set password YOURPASSWORD
+set date [exec date +%Y.%m.%d.%H%M%S]
+log_file ~/logs/${host}_${date}.log
+
+# Spawn the SSH process
+spawn ssh $username@$host
+
+# Expect the password prompt
+expect {
+    "assword:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "assword:"
+        send "$password\r"
+    }
+    timeout {
+        puts "Timeout occurred while trying to connect."
+        exit 1
+    }
+    eof {
+        puts "Connection closed unexpectedly."
+        exit 1
+    }
+}
+
+set times 0;
+while { $times < 300 } {
+        expect {
+                "\# " {send "show port $port optical \| match expression \"Value\|Power\"\r"}
+                eof { }
+                }
+                sleep 5;
+        set times [ expr $times+1];
+}
